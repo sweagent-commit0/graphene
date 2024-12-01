@@ -30,7 +30,14 @@ class Scalar(UnmountedType, BaseType):
         This function is called when the unmounted type (Scalar instance)
         is mounted (as a Field, InputField or Argument)
         """
-        pass
+        from graphql import GraphQLScalarType
+        return GraphQLScalarType(
+            name=cls.__name__,
+            description=cls.__doc__,
+            serialize=cls.serialize,
+            parse_value=cls.parse_value,
+            parse_literal=cls.parse_literal
+        )
 MAX_INT = 2147483647
 MIN_INT = -2147483648
 
@@ -44,6 +51,13 @@ class Int(Scalar):
     serialize = coerce_int
     parse_value = coerce_int
 
+    @staticmethod
+    def parse_literal(ast):
+        if isinstance(ast, IntValueNode):
+            value = int(ast.value)
+            if MIN_INT <= value <= MAX_INT:
+                return value
+        return Undefined
 class BigInt(Scalar):
     """
     The `BigInt` scalar type represents non-fractional whole numeric values.
@@ -52,6 +66,13 @@ class BigInt(Scalar):
     """
     serialize = coerce_int
     parse_value = coerce_int
+
+    @staticmethod
+    def parse_literal(ast):
+        if isinstance(ast, IntValueNode):
+            return int(ast.value)
+        return Undefined
+
 
 class Float(Scalar):
     """
@@ -62,6 +83,13 @@ class Float(Scalar):
     serialize = coerce_float
     parse_value = coerce_float
 
+    @staticmethod
+    def parse_literal(ast):
+        if isinstance(ast, (FloatValueNode, IntValueNode)):
+            return float(ast.value)
+        return Undefined
+
+
 class String(Scalar):
     """
     The `String` scalar type represents textual data, represented as UTF-8
@@ -71,12 +99,26 @@ class String(Scalar):
     serialize = coerce_string
     parse_value = coerce_string
 
+    @staticmethod
+    def parse_literal(ast):
+        if isinstance(ast, StringValueNode):
+            return ast.value
+        return Undefined
+
+
 class Boolean(Scalar):
     """
     The `Boolean` scalar type represents `true` or `false`.
     """
     serialize = bool
     parse_value = bool
+
+    @staticmethod
+    def parse_literal(ast):
+        if isinstance(ast, BooleanValueNode):
+            return ast.value
+        return Undefined
+
 
 class ID(Scalar):
     """
@@ -88,3 +130,9 @@ class ID(Scalar):
     """
     serialize = str
     parse_value = str
+
+    @staticmethod
+    def parse_literal(ast):
+        if isinstance(ast, (StringValueNode, IntValueNode)):
+            return str(ast.value)
+        return Undefined
